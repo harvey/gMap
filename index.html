@@ -414,6 +414,10 @@
         #submit-password:hover {
             background: #2980b9;
         }
+        #submit-password:disabled {
+            cursor: default !important;
+            opacity: 0.6;
+        }
     </style>
 </head>
 <body>
@@ -815,9 +819,14 @@
 
         // Handle password submission
         submitPassword.addEventListener('click', async () => {
+            // Disable the Connect button immediately so it can only be pressed once
+            submitPassword.disabled = true;
+            
             const token = passwordInput.value.trim();
             if (!token) {
                 alert('Please enter a token');
+                // Re-enable the button if no token was provided
+                submitPassword.disabled = false;
                 return;
             }
 
@@ -829,6 +838,8 @@
             } catch (error) {
                 alert('Authentication failed. Please check your token and try again.');
                 console.error('Authentication error:', error);
+                // Re-enable the button on failure
+                submitPassword.disabled = false;
             }
         });
 
@@ -896,6 +907,17 @@
             // Extract properties from the message data object:
             // Expected: number, queue, location, long, lat, time, status
             let { number, queue, location, long, lat, time, status } = data;
+            
+            // Normalize phone number (e.g. replace leading 44 with 0)
+            const normalizedNumber = String(number).replace(/^44/, '0');
+
+            // Remove any existing point with the same phone number
+            activePings.forEach((ping, key) => {
+                const existingNormalized = String(ping.number).replace(/^44/, '0');
+                if (existingNormalized === normalizedNumber) {
+                    removePing(key);
+                }
+            });
 
             // Convert lat/long to numbers if they are strings
             lat = Number(lat);
