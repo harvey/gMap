@@ -62,7 +62,7 @@
             border-right: 1px solid #e0e6ed;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
+            overflow-y: auto; /* Allow vertical scroll */
         }
         
         .sidebar-section {
@@ -418,6 +418,60 @@
             cursor: default !important;
             opacity: 0.6;
         }
+        
+        /* New styles for cabinet list items */
+        #cabinet-list .cabinet-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            border: 1px solid #e0e6ed;
+            border-radius: 4px;
+            background: #fff;
+            margin-bottom: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        #cabinet-list .cabinet-name {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        #cabinet-list .cabinet-count {
+            font-size: 14px;
+            color: #555;
+        }
+
+        /* Collapsible sections */
+        .collapsible-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .toggle-icon {
+            font-size: 14px;
+            color: #3498db;
+            transition: transform 0.3s;
+        }
+        
+        .collapsed .toggle-icon {
+            transform: rotate(-90deg);
+        }
+        
+        .collapsed + div {
+            display: none;
+        }
+
+        /* Styles for collapsible headers */
+        .collapsible-header {
+            cursor: pointer;
+            user-select: none;
+        }
+        .toggle-icon {
+            float: right;
+            font-size: 14px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -475,8 +529,21 @@
                 </div>
             </div>
             
-            <div class="sidebar-section" style="flex: 1; display: flex; flex-direction: column; overflow-y: auto;">
-                <h3>Recent Calls</h3>
+            <!-- Cabinets section (collapsible) -->
+            <div class="sidebar-section" id="cabinet-section">
+                <h3>
+                    <span class="collapsible-header">Cabinets in the past 30 minutes</span>
+                    <span class="toggle-icon">▼</span>
+                </h3>
+                <div id="cabinet-list" style="display: flex; flex-direction: column; gap: 4px; font-size: 14px;"></div>
+            </div>
+            
+            <!-- Recent Calls section (collapsible) -->
+            <div class="sidebar-section" id="calls-section" style="flex: 1; display: flex; flex-direction: column; overflow-y: auto;">
+                <h3>
+                    <span class="collapsible-header">Recent Calls</span>
+                    <span class="toggle-icon">▼</span>
+                </h3>
                 <div id="calls-list" style="flex: 1; overflow-y: auto;">
                     <!-- Call items will be added here dynamically -->
                 </div>
@@ -640,7 +707,8 @@
                     <strong>Queue:</strong> ${queue}<br>
                     <strong>Location:</strong> ${location}<br>
                     <strong>Coordinates:</strong> ${lat.toFixed(6)}, ${lng.toFixed(6)}<br>
-                    <strong>Received:</strong> ${new Date().toLocaleTimeString()}
+                    <strong>Received:</strong> ${new Date().toLocaleTimeString()}<br>
+                    <strong>Cabinet: </strong> ${cabinet}
                 </div>
             `);
             clusterGroup.addLayer(marker);
@@ -906,7 +974,7 @@
             const id = 'call-' + Date.now();
             // Extract properties from the message data object:
             // Expected: number, queue, location, long, lat, time, status
-            let { number, queue, location, long, lat, time, status } = data;
+            let { number, queue, location, long, lat, time, status, cabinet } = data;
             
             // Normalize phone number (e.g. replace leading 44 with 0)
             const normalizedNumber = String(number).replace(/^44/, '0');
@@ -932,11 +1000,13 @@
                     <strong>Location:</strong> ${location}<br>
                     <strong>Coordinates:</strong> ${lat.toFixed(6)}, ${long.toFixed(6)}<br>
                     <strong>Time:</strong> ${time}<br>
-                    <strong>Status:</strong> ${status}
+                    <strong>Status:</strong> ${status}<br>
+                    <strong>Cabinet:</strong> ${cabinet}
                 </div>
             `);
 
             clusterGroup.addLayer(marker);
+            logCabinetCall(cabinet, 30*60*1000);
 
             // Determine TTL from the input (in seconds) and convert to ms
             const ttlMs = parseInt(document.getElementById('ttl').value, 10) * 1000;
@@ -1018,11 +1088,117 @@
             return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
         }
 
+        // Function to log a cabinet value with a TTL of 30 minutes (1800000 ms)
+        function logCabinetValue(cabinet, value, ttl = 1800000) {
+            const cabinetList = document.getElementById('cabinet-list');
+            const cabinetId = 'cabinet-' + cabinet.toLowerCase();
+            let cabinetItem = document.getElementById(cabinetId);
+            
+            // If the cabinet already exists in the list, update its value and reset its TTL
+            if (cabinetItem) {
+                cabinetItem.textContent = cabinet + " " + value;
+                clearTimeout(cabinetItem.timeoutId);
+            } else {
+                cabinetItem = document.createElement('div');
+                cabinetItem.id = cabinetId;
+                cabinetItem.textContent = cabinet + " " + value;
+                cabinetList.appendChild(cabinetItem);
+            }
+            
+            // Set a timeout to remove the cabinet entry after ttl milliseconds
+            cabinetItem.timeoutId = setTimeout(() => {
+                if (cabinetItem.parentNode) {
+                    cabinetList.removeChild(cabinetItem);
+                    console.log('Removed cabinet: ' + cabinet);
+                }
+            }, ttl);
+        }
+
+        // Updated function to log a cabinet call:
+        // Each call increments the count; after the TTL, the count decrements.
+        // Cabinet entries are now styled as rows.
+        function logCabinetCall(cabinet, ttl = 1800000) {
+            const cabinetList = document.getElementById('cabinet-list');
+            const cabinetId = 'cabinet-' + cabinet.toLowerCase();
+            let cabinetItem = document.getElementById(cabinetId);
+            let count = 0;
+            
+            if (cabinetItem) {
+                count = parseInt(cabinetItem.getAttribute('data-count'), 10) || 0;
+            } else {
+                cabinetItem = document.createElement('div');
+                cabinetItem.id = cabinetId;
+                cabinetItem.className = 'cabinet-row';
+                cabinetItem.setAttribute('data-count', '0');
+                cabinetList.appendChild(cabinetItem);
+            }
+            
+            // Increment count and update display
+            count++;
+            cabinetItem.setAttribute('data-count', count);
+            cabinetItem.innerHTML = `<span class="cabinet-name">${cabinet}</span><span class="cabinet-count">${count}</span>`;
+            
+            // Schedule a decrement after the TTL expires
+            setTimeout(() => {
+                let currentCount = parseInt(cabinetItem.getAttribute('data-count'), 10) || 0;
+                currentCount = Math.max(0, currentCount - 1);
+                if (currentCount === 0) {
+                    cabinetItem.remove();
+                    console.log('Removed cabinet: ' + cabinet);
+                } else {
+                    cabinetItem.setAttribute('data-count', currentCount);
+                    cabinetItem.innerHTML = `<span class="cabinet-name">${cabinet}</span><span class="cabinet-count">${currentCount}</span>`;
+                }
+            }, ttl);
+        }
+
+        // Example usage:
+        // These calls log a cabinet call which increments the count.
+        document.addEventListener('DOMContentLoaded', () => {
+            // // For test data, each call increments by 1:
+            // logCabinetCall('Cabinet1'); // Cabinet1 count becomes 1
+            // logCabinetCall('cabinet2'); // cabinet2 count becomes 1
+            // // Example: log another call to Cabinet1
+            // logCabinetCall('Cabinet1'); // Cabinet1 count becomes 2
+
+            // addLogEntry('Test cabinet calls added');
+        });
+
         // Initialize the page
         document.addEventListener('DOMContentLoaded', () => {
             addLogEntry('System initialized');
             ensureUI();
             // The password modal is already visible
+        });
+
+        // Attach collapsible behavior to cabinet and calls sections
+        function setupCollapsibles() {
+            document.querySelectorAll('#cabinet-section, #calls-section').forEach(section => {
+                const header = section.querySelector('.collapsible-header');
+                const icon = section.querySelector('.toggle-icon');
+                const content = header.parentNode.nextElementSibling;
+                
+                // Start expanded
+                content.style.display = '';
+
+                header.addEventListener('click', () => {
+                    if (content.style.display === 'none') {
+                        content.style.display = '';
+                        icon.textContent = '▼';
+                    } else {
+                        content.style.display = 'none';
+                        icon.textContent = '▲';
+                    }
+                });
+
+                // Also allow clicking on the icon
+                icon.addEventListener('click', () => header.click());
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setupCollapsibles();
+            // ...existing DOMContentLoaded code...
         });
     </script>
 </body>
