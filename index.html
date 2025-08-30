@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Call Map v1</title>
+    <title>Live Call Map v1.4</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
@@ -488,7 +488,7 @@
     <div id="header">
         <div class="logo">
             <div class="logo-icon"><i class="fas fa-map-marker-alt"></i></div>
-            <h1>Live Call Map v1</h1>
+            <h1>Live Call Map v1.4 - Past call logs working - Area searching to add</h1>
         </div>
     </div>
     
@@ -504,10 +504,11 @@
                             <option value="15" selected>Last 15 minutes</option>
                             <option value="30">Last 30 minutes</option>
                             <option value="60">Last hour</option>
+                            <option value="all">All Day</option>
                         </select>
                     </div>
                     <div class="filter-group">
-                        <label for="area-filter">Area</label>
+                        <label for="area-filter">Area (Not working yet)</label>
                         <select id="area-filter">
                             <option value="all" selected>All Areas</option>
                             <option value="north">North Region</option>
@@ -632,8 +633,12 @@
         const activeCallsElement = document.getElementById('active-calls');
         
         function updateStats() {
-            totalCallsElement.textContent = callCounter;
-            activeCallsElement.textContent = activePings.size;
+            if (totalCallsElement) {
+                totalCallsElement.textContent = callCounter;
+            }
+            if (activeCallsElement) {
+                activeCallsElement.textContent = activePings.size;
+            }
         }
         
         function addLogEntry(message) {
@@ -885,87 +890,213 @@
             }
         }
 
-        // Handle password submission
-        submitPassword.addEventListener('click', async () => {
-            // Disable the Connect button immediately so it can only be pressed once
-            submitPassword.disabled = true;
-            
-            const token = passwordInput.value.trim();
-            if (!token) {
-                alert('Please enter a token');
-                // Re-enable the button if no token was provided
-                submitPassword.disabled = false;
-                return;
-            }
-
-            try {
-                const result = await postPlain(token);
-                passwordModal.style.display = 'none';
-                addLogEntry('Authentication successful');
-                connect(result); // Connect to Ably
-            } catch (error) {
-                alert('Authentication failed. Please check your token and try again.');
-                console.error('Authentication error:', error);
-                // Re-enable the button on failure
-                submitPassword.disabled = false;
-            }
-        });
-
-        // Allow submitting with Enter key
-        passwordInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                submitPassword.click();
-            }
-        });
-
-        // Connect to Ably
-        function connect(albykey) {
-            try {
-                const ably = new Ably.Realtime({ key: albykey });
-                const channel = ably.channels.get(CHANNEL_NAME);
-
-                channel.subscribe((message) => {
-                    console.log(message);
-                    // Parse message data if it's a string
-                    if (typeof message.data === 'string') {
-                        try { 
-                            message.data = JSON.parse(message.data);
-                        } catch(e) { /* leave as string if invalid JSON */ }
-                    }
-
-                    // Now assume message.data is an object with:
-                    // { number, queue, location, long, lat, time, status }
-                    if (typeof message.data === 'object') {
-                        showCallFromMessage(message.data);
-                    }
-
-                    addMessageToPanel(message);
-
-                    // Compose notification title/body
-                    const title = message.name ? `Alby message: ${message.name}` : 'Alby message';
-                    let body;
-                    try {
-                        body = typeof message.data === 'string' ? message.data : JSON.stringify(message.data);
-                    } catch(e) {
-                        body = String(message.data);
-                    }
-                });
-
-                ably.connection.on((stateChange) => {
-                    console.log('Ably connection:', stateChange.current);
-                    // Update connection status based on Ably connection state
-                    if(stateChange.current === 'connected'){
-                        updateServerStatus(true);
-                    } else {
-                        updateServerStatus(false);
-                    }
-                });
-
-            } catch (err) {
-                console.error('Ably connect failed', err);
-                alert('Realtime connection failed: ' + err.message);
-            }
+        // Save a call into localStorage keyed by date (YYYY-MM-DD)
+        function saveCallToLocalStorage(callData) {
+            const callTime = new Date(callData.time);
+            const dateKey = callTime.toISOString().split('T')[0];
+            const storageKey = 'calls-' + dateKey;
+            let storedCalls = JSON.parse(localStorage.getItem(storageKey)) || [];
+            storedCalls.push(callData);
+            localStorage.setItem(storageKey, JSON.stringify(storedCalls));
         }
+
+        // Load calls from localStorage filtered by the time range provided in the time-filter select
+        function loadCallsFromLocalStorage() {
+            // Clear current calls on the map
+            clearAllPings();
+
+            const timeFilterElem = document.getElementById('time-filter');
+            let threshold;
+            if (timeFilterElem.value === "all") {
+                // Use today's date at 00:00:00 as threshold
+                const todayString = new Date().toISOString().split('T')[0];
+                threshold = new Date(todayString).getTime();
+            } else {
+                const minutesRange = parseInt(timeFilterElem.value, 10);
+                threshold = Date.now() - minutesRange * 60 * 1000;
+            }
+            
+            // Use today’s date as key
+            const today = new Date().toISOString().split('T')[0];
+            const storageKey = 'calls-' + today;
+            const storedCalls = JSON.parse(localStorage.getItem(storageKey)) || [];
+
+            // For every call saved, only show if call.time is after threshold
+            storedCalls.forEach(call => {
+                if (new Date(call.time).getTime() >= threshold) {
+                    showCallFromMessage(call);
+                }
+            });
+        }
+
+        function getUKDate() {
+  const now = new Date();
+
+  // Format in UK timezone
+  const formatter = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/London",
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit"
+  });
+
+  // This gives dd/MM/yy
+  const parts = formatter.formatToParts(now);
+
+  const day = parts.find(p => p.type === "day").value;
+  const month = parts.find(p => p.type === "month").value;
+  const year = parts.find(p => p.type === "year").value;
+
+  return `${day}-${month}-${year}`;
+}
+
+//console.log(getUKDate()); // e.g. "30-08-25"
+
+
+        // When existing calls are pulled from the sheet,
+// save them to localStorage and then load them based on the time-filter.
+async function fetchAndStoreCalls() {
+    try {
+        // PULL existing calls from the sheet
+        const webapp = 'https://script.google.com/macros/s/AKfycbzGDmH_NbsXPgvHSBEkppkUdJ9n4jk7Ha_rdK7GQNJIIwtRc2R7YGZ01TFlwSrcCaYExQ/exec';
+        // Example date parameter sent to the webapp (unused here as we key by today)
+        const dateParam = getUKDate(); // e.g., '30-08-25'
+        const token = passwordInput.value.trim();
+        const res = await fetch(`${webapp}?getCalls=${encodeURIComponent(dateParam)}&token=${encodeURIComponent(token)}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const payload = await res.json();
+        console.log('Sheet rows:', payload.rows);
+
+        // Clear any previously stored calls for today—optional if you want to keep history
+        const today = new Date().toISOString().split('T')[0];
+        localStorage.removeItem('calls-' + today);
+        // Loop through each row, parse it, store valid calls locally
+        for (let i = 0; i < payload.rows.length; i++) {
+            const row = JSON.parse(payload.rows[i]);
+            const { number, queue, location, long, lat, time, status, cabinet } = row;
+            if (!number || !lat || !long) continue; // skip invalid rows
+            // Save the call to localStorage
+            saveCallToLocalStorage({ number, queue, location, long, lat, time, status, cabinet });
+        }
+        // Now load calls based on current time-filter value
+        loadCallsFromLocalStorage();
+    } catch (error) {
+        console.error('Error fetching or storing calls:', error);
+    }
+}
+
+// When the time-filter selection changes, reload calls from localStorage
+document.getElementById('time-filter').addEventListener('change', () => {
+    loadCallsFromLocalStorage();
+});
+
+// Handle password submission
+submitPassword.addEventListener('click', async () => {
+    // Disable the Connect button immediately so it can only be pressed once
+    submitPassword.disabled = true;
+    
+    const token = passwordInput.value.trim();
+    if (!token) {
+        alert('Please enter a token');
+        // Re-enable the button if no token was provided
+        submitPassword.disabled = false;
+        return;
+    }
+
+    try {
+        const result = await postPlain(token);
+        passwordModal.style.display = 'none';
+        addLogEntry('Authentication successful');
+        connect(result); // Connect to Ably
+
+        // // PULL existing calls from the sheet
+        // const webapp = 'https://script.google.com/macros/s/AKfycbzGDmH_NbsXPgvHSBEkppkUdJ9n4jk7Ha_rdK7GQNJIIwtRc2R7YGZ01TFlwSrcCaYExQ/exec';
+        //     const date = '30-08-25';
+
+        //     const res = await fetch(`${webapp}?getCalls=${encodeURIComponent(date)}&token=${encodeURIComponent(token)}`);
+        //     if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        //     const payload = await res.json();
+        //     console.log('Sheet rows:', payload.rows);
+
+        //     ROWS = payload.rows;
+
+
+        // console.log(ROWS);
+
+        // for(let i = 0; i < ROWS.length; i++) {
+        //     row = JSON.parse(ROWS[i]);
+
+        //     const { number, queue, location, long, lat, time, status, cabinet } = row;
+        //     if(!number || !lat || !long) continue; // skip invalid rows
+
+        //     showCallFromMessage({ number, queue, location, long, lat, time, status, cabinet });
+        // }
+
+        fetchAndStoreCalls();
+
+    } catch (error) {
+        alert('Authentication failed. Please check your token and try again.');
+        console.error('Authentication error:', error);
+        // Re-enable the button on failure
+        submitPassword.disabled = false;
+    }
+});
+
+// Allow submitting with Enter key
+passwordInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        submitPassword.click();
+    }
+});
+
+// Connect to Ably
+function connect(albykey) {
+    try {
+        const ably = new Ably.Realtime({ key: albykey });
+        const channel = ably.channels.get(CHANNEL_NAME);
+
+        channel.subscribe((message) => {
+            console.log(message);
+            // Parse message data if it's a string
+            if (typeof message.data === 'string') {
+                try { 
+                    message.data = JSON.parse(message.data);
+                } catch(e) { /* leave as string if invalid JSON */ }
+            }
+
+            // Now assume message.data is an object with:
+            // { number, queue, location, long, lat, time, status }
+            if (typeof message.data === 'object') {
+                showCallFromMessage(message.data);
+            }
+
+            addMessageToPanel(message);
+
+            // Compose notification title/body
+            const title = message.name ? `Alby message: ${message.name}` : 'Alby message';
+            let body;
+            try {
+                body = typeof message.data === 'string' ? message.data : JSON.stringify(message.data);
+            } catch(e) {
+                body = String(message.data);
+            }
+        });
+
+        ably.connection.on((stateChange) => {
+            console.log('Ably connection:', stateChange.current);
+            // Update connection status based on Ably connection state
+            if(stateChange.current === 'connected'){
+                updateServerStatus(true);
+            } else {
+                updateServerStatus(false);
+            }
+        });
+        
+    } catch (err) {
+        console.error('Ably connect failed', err);
+        alert('Realtime connection failed: ' + err.message);
+    }
+}
 
         // New function to add a marker from an Alby message with auto-removal via TTL.
         function showCallFromMessage(data) {
