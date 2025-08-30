@@ -8,471 +8,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            background-color: #f5f7f9;
-            color: #333;
-            overflow: hidden;
-        }
-        
-        #header {
-            background: linear-gradient(135deg, #2c3e50 0%, #4a6491 100%);
-            color: white;
-            padding: 12px 20px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-        }
-        
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .logo-icon {
-            background-color: #3498db;
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        
-        .logo h1 {
-            font-size: 22px;
-            font-weight: 600;
-        }
-        
-        #container {
-            display: flex;
-            height: calc(100vh - 64px);
-        }
-        
-        #sidebar {
-            width: 320px;
-            background: white;
-            border-right: 1px solid #e0e6ed;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto; /* Allow vertical scroll */
-        }
-        
-        .sidebar-section {
-            padding: 16px;
-            border-bottom: 1px solid #e0e6ed;
-        }
-        
-        .sidebar-section h3 {
-            font-size: 16px;
-            margin-bottom: 12px;
-            color: #2c3e50;
-            font-weight: 600;
-        }
-        
-        .filters {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-        
-        .filter-group label {
-            font-size: 14px;
-            color: #5a6b7e;
-        }
-        
-        .filter-group select, .filter-group input {
-            padding: 8px;
-            border: 1px solid #d1d9e2;
-            border-radius: 4px;
-            font-size: 14px;
-            background: white;
-        }
-        
-        .stats {
-            display: flex;
-            gap: 12px;
-        }
-        
-        .stat-box {
-            flex: 1;
-            background: #f8fafc;
-            border: 1px solid #e0e6ed;
-            border-radius: 6px;
-            padding: 12px;
-            text-align: center;
-        }
-        
-        .stat-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: #2c3e50;
-        }
-        
-        .stat-label {
-            font-size: 12px;
-            color: #5a6b7e;
-            margin-top: 4px;
-        }
-        
-        #calls-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        
-        .call-item {
-            background: #f8fafc;
-            border: 1px solid #e0e6ed;
-            border-radius: 6px;
-            padding: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-        
-        .call-info {
-            flex: 1;
-        }
-        
-        .call-number {
-            font-weight: 600;
-            color: #2c3e50;
-        }
-        
-        .call-time {
-            font-size: 12px;
-            color: #5a6b7e;
-            margin-top: 2px;
-        }
-        
-        .call-location {
-            font-size: 14px;
-            margin-top: 4px;
-            color: #5a6b7e;
-        }
-        
-        .call-queue {
-            font-size: 12px;
-            margin-top: 4px;
-            color: #3498db;
-        }
-        
-        .call-actions button {
-            background: #3498db;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 6px 10px;
-            font-size: 12px;
-            cursor: pointer;
-        }
-        
-        #map-container {
-            flex: 1;
-            position: relative;
-        }
-        
-        #map {
-            width: 100%;
-            height: 100%;
-        }
-        
-        #controls {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            width: 280px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-            overflow: hidden;
-            z-index: 1000;
-        }
-        
-        #controls-header {
-            background: #2c3e50;
-            color: white;
-            padding: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: move;
-        }
-        
-        #toggle-controls {
-            background: none;
-            border: none;
-            color: white;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        
-        #controls-content {
-            padding: 16px;
-        }
-        
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        
-        .control-group h3 {
-            font-size: 16px;
-            color: #2c3e50;
-            margin-bottom: 4px;
-        }
-        
-        .button-group {
-            display: flex;
-            gap: 8px;
-        }
-        
-        .button-group button {
-            flex: 1;
-            padding: 8px 12px;
-            border: none;
-            border-radius: 4px;
-            font-size: 14px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-        }
-        
-        .button-group button:first-child {
-            background: #e74c3c;
-            color: white;
-        }
-        
-        .button-group button.secondary {
-            background: #f0f0f0;
-            color: #2c3e50;
-        }
-        
-        .heatmap-controls {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        
-        .heatmap-toggle {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 40px;
-            height: 22px;
-        }
-        
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 34px;
-        }
-        
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 16px;
-            width: 16px;
-            left: 3px;
-            bottom: 3px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-        
-        input:checked + .slider {
-            background-color: #3498db;
-        }
-        
-        input:checked + .slider:before {
-            transform: translateX(18px);
-        }
-        
-        #log {
-            padding: 12px;
-            background: #f8fafc;
-            border-top: 1px solid #e0e6ed;
-            max-height: 200px;
-            overflow-y: auto;
-            font-family: monospace;
-            font-size: 12px;
-        }
-        
-        .log-entry {
-            margin-bottom: 6px;
-            line-height: 1.4;
-        }
-        
-        .log-time {
-            color: #3498db;
-            font-weight: 600;
-        }
-        
-        #server-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px;
-            background: #f8fafc;
-            border-top: 1px solid #e0e6ed;
-            font-size: 14px;
-        }
-        
-        .server-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #e74c3c;
-        }
-        
-        #password-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10000;
-        }
-        
-        .modal-content {
-            background: white;
-            padding: 24px;
-            border-radius: 8px;
-            width: 400px;
-            max-width: 90%;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-        }
-        
-        .modal-content h2 {
-            margin-bottom: 16px;
-            color: #2c3e50;
-        }
-        
-        .modal-content p {
-            margin-bottom: 20px;
-            color: #5a6b7e;
-        }
-        
-        #password-input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #d1d9e2;
-            border-radius: 4px;
-            font-size: 16px;
-            margin-bottom: 16px;
-        }
-        
-        #submit-password {
-            width: 100%;
-            padding: 12px;
-            background: #3498db;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        
-        #submit-password:hover {
-            background: #2980b9;
-        }
-        #submit-password:disabled {
-            cursor: default !important;
-            opacity: 0.6;
-        }
-        
-        /* New styles for cabinet list items */
-        #cabinet-list .cabinet-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 12px;
-            border: 1px solid #e0e6ed;
-            border-radius: 4px;
-            background: #fff;
-            margin-bottom: 4px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        #cabinet-list .cabinet-name {
-            font-weight: bold;
-            color: #2c3e50;
-        }
-        #cabinet-list .cabinet-count {
-            font-size: 14px;
-            color: #555;
-        }
-
-        /* Collapsible sections */
-        .collapsible-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-        }
-        
-        .toggle-icon {
-            font-size: 14px;
-            color: #3498db;
-            transition: transform 0.3s;
-        }
-        
-        .collapsed .toggle-icon {
-            transform: rotate(-90deg);
-        }
-        
-        .collapsed + div {
-            display: none;
-        }
-
-        /* Styles for collapsible headers */
-        .collapsible-header {
-            cursor: pointer;
-            user-select: none;
-        }
-        .toggle-icon {
-            float: right;
-            font-size: 14px;
-            cursor: pointer;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <!-- Password Modal -->
@@ -525,7 +61,7 @@
                 <div class="stats">
                     <div class="stat-box">
                         <div class="stat-value" id="total-calls">0</div>
-                        <div class="stat-label">Total Calls</div>
+                        <div class="stat-label">Total Calls on Screen</div>
                     </div>
                 </div>
             </div>
@@ -533,7 +69,7 @@
             <!-- Cabinets section (collapsible) -->
             <div class="sidebar-section" id="cabinet-section">
                 <h3>
-                    <span class="collapsible-header">Cabinets in the past 30 minutes</span>
+                    <span class="collapsible-header">Cabinets</span>
                     <span class="toggle-icon">▼</span>
                 </h3>
                 <div id="cabinet-list" style="display: flex; flex-direction: column; gap: 4px; font-size: 14px;"></div>
@@ -542,7 +78,7 @@
             <!-- Recent Calls section (collapsible) -->
             <div class="sidebar-section" id="calls-section" style="flex: 1; display: flex; flex-direction: column; overflow-y: auto;">
                 <h3>
-                    <span class="collapsible-header">Recent Calls</span>
+                    <span class="collapsible-header">Calls</span>
                     <span class="toggle-icon">▼</span>
                 </h3>
                 <div id="calls-list" style="flex: 1; overflow-y: auto;">
@@ -634,8 +170,10 @@
         
         function updateStats() {
             if (totalCallsElement) {
-                totalCallsElement.textContent = callCounter;
+                // Count the number of active pins visible on the map.
+                totalCallsElement.textContent = activePings.size;
             }
+            // Optionally update an "Active Calls" stat if needed:
             if (activeCallsElement) {
                 activeCallsElement.textContent = activePings.size;
             }
@@ -747,18 +285,19 @@
         }
         
         function clearAllPings() {
-            for (const [id, ping] of activePings.entries()) {
-                clearTimeout(ping.timeoutId);
+            activePings.forEach((ping, id) => {
+                clearTimeout(ping.timeoutId); // (Unused now, but safe to clear)
                 clusterGroup.removeLayer(ping.marker);
                 const callElement = document.getElementById(`call-${id}`);
                 if (callElement) {
                     callsList.removeChild(callElement);
                 }
-            }
+            });
             activePings.clear();
             heatLayer.setLatLngs([]);
+            callCounter = 0;
             updateStats();
-            addLogEntry('Cleared all pings');
+            addLogEntry('Cleared all points from the map');
         }
         
         function updateHeatmap() {
@@ -892,6 +431,10 @@
 
         // Save a call into localStorage keyed by date (YYYY-MM-DD)
         function saveCallToLocalStorage(callData) {
+            // Generate a unique id if it doesn't exist.
+            if (!callData.id) {
+                callData.id = 'call-' + new Date().getTime() + '-' + Math.random().toString(36).substr(2, 5);
+            }
             const callTime = new Date(callData.time);
             const dateKey = callTime.toISOString().split('T')[0];
             const storageKey = 'calls-' + dateKey;
@@ -902,9 +445,6 @@
 
         // Load calls from localStorage filtered by the time range provided in the time-filter select
         function loadCallsFromLocalStorage() {
-            // Clear current calls on the map
-            clearAllPings();
-
             const timeFilterElem = document.getElementById('time-filter');
             let threshold;
             if (timeFilterElem.value === "all") {
@@ -915,18 +455,47 @@
                 const minutesRange = parseInt(timeFilterElem.value, 10);
                 threshold = Date.now() - minutesRange * 60 * 1000;
             }
-            
+
             // Use today’s date as key
             const today = new Date().toISOString().split('T')[0];
             const storageKey = 'calls-' + today;
             const storedCalls = JSON.parse(localStorage.getItem(storageKey)) || [];
 
-            // For every call saved, only show if call.time is after threshold
+            // Build a map of calls that should be visible currently
+            const visibleCalls = new Map();
             storedCalls.forEach(call => {
                 if (new Date(call.time).getTime() >= threshold) {
-                    showCallFromMessage(call);
+                    visibleCalls.set(call.id, call);
                 }
             });
+
+            // Remove markers from activePings that are no longer visible,
+            // unless the popup is open.
+            activePings.forEach((ping, id) => {
+                if (!visibleCalls.has(id)) {
+                    if (!ping.marker.isPopupOpen()) {
+                        clusterGroup.removeLayer(ping.marker);
+                        activePings.delete(id);
+                        // Optionally flag the call in the list as expired.
+                        const callElement = document.getElementById(`call-${id}`);
+                        if (callElement) {
+                            callElement.style.opacity = '0.5';
+                            callElement.style.textDecoration = 'line-through';
+                        }
+                    }
+                }
+            });
+
+            // Add any new calls that are visible but not already on the map.
+            visibleCalls.forEach((call, id) => {
+                if (!activePings.has(id)) {
+                    addCallMarker(call);
+                }
+            });
+
+            // Update stats and the cabinet list based on active calls.
+            updateStats();
+            updateCabinetList();
         }
 
         function getUKDate() {
@@ -980,6 +549,8 @@ async function fetchAndStoreCalls() {
         }
         // Now load calls based on current time-filter value
         loadCallsFromLocalStorage();
+        // Every 1 second, refresh the map based on the current time-filter selection.
+        setInterval(loadCallsFromLocalStorage, 1000);
     } catch (error) {
         console.error('Error fetching or storing calls:', error);
     }
@@ -1033,7 +604,7 @@ submitPassword.addEventListener('click', async () => {
         // }
 
         fetchAndStoreCalls();
-
+        
     } catch (error) {
         alert('Authentication failed. Please check your token and try again.');
         console.error('Authentication error:', error);
@@ -1103,234 +674,158 @@ function connect(albykey) {
             console.log('New call data:', data);
             // Create a unique id for the call
             const id = 'call-' + Date.now();
-            // Extract properties from the message data object:
-            // Expected: number, queue, location, long, lat, time, status
             let { number, queue, location, long, lat, time, status, cabinet } = data;
             
-            // Normalize phone number (e.g. replace leading 44 with 0)
-            const normalizedNumber = String(number).replace(/^44/, '0');
-
-            // Remove any existing point with the same phone number
-            activePings.forEach((ping, key) => {
-                const existingNormalized = String(ping.number).replace(/^44/, '0');
-                if (existingNormalized === normalizedNumber) {
-                    removePing(key);
-                }
-            });
-
-            // Convert lat/long to numbers if they are strings
+            // Normalize and set default time if not provided.
+            number = String(number);
             lat = Number(lat);
             long = Number(long);
+            if (!time) time = new Date().toISOString();
 
-            // Create marker at the provided lat/lng using an icon based on the queue
-            const marker = L.marker([lat, long], { icon: getIconForQueue(queue) });
-            marker.bindPopup(`
-                <div style="padding: 8px;">
-                    <strong>Call from:</strong> ${number}<br>
-                    <strong>Queue:</strong> ${queue}<br>
-                    <strong>Location:</strong> ${location}<br>
-                    <strong>Coordinates:</strong> ${lat.toFixed(6)}, ${long.toFixed(6)}<br>
-                    <strong>Time:</strong> ${time}<br>
-                    <strong>Status:</strong> ${status}<br>
-                    <strong>Cabinet:</strong> ${cabinet}
-                </div>
-            `);
-
-            clusterGroup.addLayer(marker);
-            logCabinetCall(cabinet, 30*60*1000);
-
-            // Determine TTL from the input (in seconds) and convert to ms
-            const ttlMs = parseInt(document.getElementById('ttl').value, 10) * 1000;
-            const timeoutId = setTimeout(() => removePing(id), ttlMs);
-
-            activePings.set(id, {
-                marker: marker,
-                timeoutId: timeoutId,
-                lastUpdate: Date.now(),
-                number: number,
-                location: location,
-                queue: queue
-            });
-
-            // Add to heatmap
-            updateHeatmap();
-
-            // Add to sidebar (using the existing function and passing the provided queue)
-            addCallToList(id, number, location, queue);
-
-            // Update counters and log
-            callCounter++;
-            updateStats();
-            addLogEntry(`New call from ${number} at ${location} via ${queue}`);
-        }
-
-        // create UI container if not present
-        function ensureUI() {
-            if (document.getElementById('alby-messages-panel')) return;
-            const panel = document.createElement('div');
-            panel.id = 'alby-messages-panel';
-            panel.style = `
-                position: fixed; right: 12px; bottom: 12px;
-                width: 320px; max-height: 50vh; overflow:auto;
-                font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-                background: rgba(255,255,255,0.96); border: 1px solid rgba(0,0,0,0.08);
-                box-shadow: 0 6px 24px rgba(0,0,0,0.12); border-radius: 8px; padding: 8px; z-index:99999;
-            `;
-            panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-                <strong style="font-size:14px">Live Alby messages</strong>
-                <button id="alby-close-btn" title="Hide" style="background:none;border:0;font-size:16px;cursor:pointer">✕</button>
-            </div><div id="alby-messages" style="gap:6px;display:flex;flex-direction:column"></div>`;
-            document.body.appendChild(panel);
-            panel.style.display = 'none'; // start hidden
-            document.getElementById('alby-close-btn').onclick = () => panel.remove();
-        }
-
-        // simple toast (in-page)
-        function showToast(text, ttl=6000){
-            try {
-                const t = document.createElement('div');
-                t.textContent = text;
-                t.style = 'position:fixed;right:12px;bottom:84px;padding:10px;border-radius:6px;background:#222;color:#fff;font-size:13px;z-index:999999;box-shadow:0 6px 20px rgba(0,0,0,0.25)';
-                document.body.appendChild(t);
-                setTimeout(()=> { t.style.transition='opacity 0.3s'; t.style.opacity = '0'; setTimeout(()=>t.remove(),300); }, ttl);
-            } catch(e){ /* noop */ }
-        }
-
-        // add message to panel
-        function addMessageToPanel(msg) {
-            ensureUI();
-            const list = document.getElementById('alby-messages');
-            const item = document.createElement('div');
-            item.style = 'padding:8px;border-radius:6px;background:linear-gradient(180deg,rgba(245,245,245,1),rgba(250,250,250,1));border:1px solid rgba(0,0,0,0.04);font-size:13px';
-            const name = msg.name ? `[${msg.name}] ` : '';
-            let dataText;
-            try {
-                dataText = typeof msg.data === 'string' ? msg.data : JSON.stringify(msg.data);
-            } catch(e) {
-                dataText = String(msg.data);
-            }
-            const time = new Date().toLocaleTimeString();
-            item.innerHTML = `<div style="font-weight:600;margin-bottom:6px">${name}<span style="color:#666;font-weight:400;font-size:12px">${time}</span></div>
-                            <div style="white-space:pre-wrap;word-break:break-word">${escapeHtml(dataText)}</div>`;
-            list.prepend(item);
-        }
-
-        function escapeHtml(s){
-            return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-        }
-
-        // Function to log a cabinet value with a TTL of 30 minutes (1800000 ms)
-        function logCabinetValue(cabinet, value, ttl = 1800000) {
-            const cabinetList = document.getElementById('cabinet-list');
-            const cabinetId = 'cabinet-' + cabinet.toLowerCase();
-            let cabinetItem = document.getElementById(cabinetId);
+            // Build the call object and save it to localStorage
+            const call = { id, number, queue, location, long, lat, time, status, cabinet };
+            saveCallToLocalStorage(call);
             
-            // If the cabinet already exists in the list, update its value and reset its TTL
-            if (cabinetItem) {
-                cabinetItem.textContent = cabinet + " " + value;
-                clearTimeout(cabinetItem.timeoutId);
-            } else {
-                cabinetItem = document.createElement('div');
-                cabinetItem.id = cabinetId;
-                cabinetItem.textContent = cabinet + " " + value;
-                cabinetList.appendChild(cabinetItem);
-            }
-            
-            // Set a timeout to remove the cabinet entry after ttl milliseconds
-            cabinetItem.timeoutId = setTimeout(() => {
-                if (cabinetItem.parentNode) {
-                    cabinetList.removeChild(cabinetItem);
-                    console.log('Removed cabinet: ' + cabinet);
+            // Immediately refresh the markers
+            loadCallsFromLocalStorage();
+        }
+
+        // ---- Update addCallMarker to store cabinet in activePings ----
+function addCallMarker(call) {
+    const { id, number, queue, location, long, lat, time, status, cabinet } = call;
+    
+    // Create marker with an icon based on the queue
+    const marker = L.marker([lat, long], { icon: getIconForQueue(queue) });
+    marker.bindPopup(`
+        <div style="padding: 8px;">
+            <strong>Call from:</strong> ${number}<br>
+            <strong>Queue:</strong> ${queue}<br>
+            <strong>Location:</strong> ${location}<br>
+            <strong>Coordinates:</strong> ${lat.toFixed(6)}, ${long.toFixed(6)}<br>
+            <strong>Time:</strong> ${time}<br>
+            <strong>Status:</strong> ${status}<br>
+            <strong>Cabinet:</strong> ${cabinet}
+        </div>
+    `);
+    clusterGroup.addLayer(marker);
+    
+    // Add the marker to our activePings map and update the sidebar
+    activePings.set(id, { marker, number, location, queue, cabinet });
+    addCallToList(id, number, location, queue);
+    // Remove the line that increments the call counter:
+    // callCounter++;
+}
+
+// ---- New function to update cabinets based on active calls ----
+function updateCabinetList() {
+    const cabinetCounts = {};
+    // Count active calls that have a cabinet value.
+    activePings.forEach(ping => {
+        if (ping.cabinet) {
+            cabinetCounts[ping.cabinet] = (cabinetCounts[ping.cabinet] || 0) + 1;
+        }
+    });
+    
+    const cabinetList = document.getElementById('cabinet-list');
+    // Clear the existing list.
+    cabinetList.innerHTML = '';
+    
+    // Create a row for each cabinet.
+    for (const cabinet in cabinetCounts) {
+        const cabinetItem = document.createElement('div');
+        cabinetItem.className = 'cabinet-row';
+        cabinetItem.innerHTML = `<span class="cabinet-name">${cabinet}</span><span class="cabinet-count">${cabinetCounts[cabinet]}</span>`;
+        cabinetList.appendChild(cabinetItem);
+    }
+}
+
+// ---- Update loadCallsFromLocalStorage to refresh cabinets too ----
+function loadCallsFromLocalStorage() {
+    const timeFilterElem = document.getElementById('time-filter');
+    let threshold;
+    if (timeFilterElem.value === "all") {
+        // Use today's date at 00:00:00 as threshold
+        const todayString = new Date().toISOString().split('T')[0];
+        threshold = new Date(todayString).getTime();
+    } else {
+        const minutesRange = parseInt(timeFilterElem.value, 10);
+        threshold = Date.now() - minutesRange * 60 * 1000;
+    }
+
+    // Use today’s date as key
+    const today = new Date().toISOString().split('T')[0];
+    const storageKey = 'calls-' + today;
+    const storedCalls = JSON.parse(localStorage.getItem(storageKey)) || [];
+
+    // Build a map of calls that should be visible currently
+    const visibleCalls = new Map();
+    storedCalls.forEach(call => {
+        if (new Date(call.time).getTime() >= threshold) {
+            visibleCalls.set(call.id, call);
+        }
+    });
+
+    // Remove markers from activePings that are no longer visible,
+    // unless the popup is open.
+    activePings.forEach((ping, id) => {
+        if (!visibleCalls.has(id)) {
+            if (!ping.marker.isPopupOpen()) {
+                clusterGroup.removeLayer(ping.marker);
+                activePings.delete(id);
+                // Optionally flag the call in the list as expired.
+                const callElement = document.getElementById(`call-${id}`);
+                if (callElement) {
+                    callElement.style.opacity = '0.5';
+                    callElement.style.textDecoration = 'line-through';
                 }
-            }, ttl);
-        }
-
-        // Updated function to log a cabinet call:
-        // Each call increments the count; after the TTL, the count decrements.
-        // Cabinet entries are now styled as rows.
-        function logCabinetCall(cabinet, ttl = 1800000) {
-            const cabinetList = document.getElementById('cabinet-list');
-            const cabinetId = 'cabinet-' + cabinet.toLowerCase();
-            let cabinetItem = document.getElementById(cabinetId);
-            let count = 0;
-            
-            if (cabinetItem) {
-                count = parseInt(cabinetItem.getAttribute('data-count'), 10) || 0;
-            } else {
-                cabinetItem = document.createElement('div');
-                cabinetItem.id = cabinetId;
-                cabinetItem.className = 'cabinet-row';
-                cabinetItem.setAttribute('data-count', '0');
-                cabinetList.appendChild(cabinetItem);
             }
-            
-            // Increment count and update display
-            count++;
-            cabinetItem.setAttribute('data-count', count);
-            cabinetItem.innerHTML = `<span class="cabinet-name">${cabinet}</span><span class="cabinet-count">${count}</span>`;
-            
-            // Schedule a decrement after the TTL expires
-            setTimeout(() => {
-                let currentCount = parseInt(cabinetItem.getAttribute('data-count'), 10) || 0;
-                currentCount = Math.max(0, currentCount - 1);
-                if (currentCount === 0) {
-                    cabinetItem.remove();
-                    console.log('Removed cabinet: ' + cabinet);
-                } else {
-                    cabinetItem.setAttribute('data-count', currentCount);
-                    cabinetItem.innerHTML = `<span class="cabinet-name">${cabinet}</span><span class="cabinet-count">${currentCount}</span>`;
-                }
-            }, ttl);
         }
+    });
 
-        // Example usage:
-        // These calls log a cabinet call which increments the count.
-        document.addEventListener('DOMContentLoaded', () => {
-            // // For test data, each call increments by 1:
-            // logCabinetCall('Cabinet1'); // Cabinet1 count becomes 1
-            // logCabinetCall('cabinet2'); // cabinet2 count becomes 1
-            // // Example: log another call to Cabinet1
-            // logCabinetCall('Cabinet1'); // Cabinet1 count becomes 2
-
-            // addLogEntry('Test cabinet calls added');
-        });
-
-        // Initialize the page
-        document.addEventListener('DOMContentLoaded', () => {
-            addLogEntry('System initialized');
-            ensureUI();
-            // The password modal is already visible
-        });
-
-        // Attach collapsible behavior to cabinet and calls sections
-        function setupCollapsibles() {
-            document.querySelectorAll('#cabinet-section, #calls-section').forEach(section => {
-                const header = section.querySelector('.collapsible-header');
-                const icon = section.querySelector('.toggle-icon');
-                const content = header.parentNode.nextElementSibling;
-                
-                // Start expanded
-                content.style.display = '';
-
-                header.addEventListener('click', () => {
-                    if (content.style.display === 'none') {
-                        content.style.display = '';
-                        icon.textContent = '▼';
-                    } else {
-                        content.style.display = 'none';
-                        icon.textContent = '▲';
-                    }
-                });
-
-                // Also allow clicking on the icon
-                icon.addEventListener('click', () => header.click());
-            });
+    // Add any new calls that are visible but not already on the map.
+    visibleCalls.forEach((call, id) => {
+        if (!activePings.has(id)) {
+            addCallMarker(call);
         }
+    });
 
-        document.addEventListener('DOMContentLoaded', () => {
-            setupCollapsibles();
-            // ...existing DOMContentLoaded code...
-        });
+    // Update stats and the cabinet list based on active calls.
+    updateStats();
+    updateCabinetList();
+}
     </script>
+    <script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Select each sidebar section that has a collapsible header.
+    document.querySelectorAll('.sidebar-section').forEach(section => {
+        const headerEl = section.querySelector('h3');
+        if (!headerEl) return;
+        const collapsibleHeader = headerEl.querySelector('.collapsible-header');
+        const toggleIcon = headerEl.querySelector('.toggle-icon');
+        // The content to toggle is the element immediately following the header.
+        const content = headerEl.nextElementSibling;
+        if (collapsibleHeader && toggleIcon && content) {
+            // Set cursor for better UX.
+            collapsibleHeader.style.cursor = 'pointer';
+            headerEl.addEventListener('click', () => {
+                if (content.style.display === 'none' || content.style.display === '') {
+                    // Expand the section.
+                    content.style.display = 'block';
+                    toggleIcon.textContent = '▼';
+                } else {
+                    // Collapse the section.
+                    content.style.display = 'none';
+                    toggleIcon.textContent = '▲';
+                }
+            });
+            // Initialize with content visible if not set.
+            if (!content.style.display) {
+                content.style.display = 'block';
+                toggleIcon.textContent = '▼';
+            }
+        }
+    });
+});
+</script>
 </body>
 </html>
