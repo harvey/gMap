@@ -730,14 +730,18 @@ function updateCabinetList() {
     const cabinetList = document.getElementById('cabinet-list');
     // Clear the existing list.
     cabinetList.innerHTML = '';
-    
-    // Create a row for each cabinet.
-    for (const cabinet in cabinetCounts) {
+
+    // Convert the cabinetCounts object to an array and sort by count descending.
+    const sortedCabinets = Object.entries(cabinetCounts)
+        .sort((a, b) => b[1] - a[1]);
+
+    // Create a row for each cabinet in sorted order.
+    sortedCabinets.forEach(([cabinet, count]) => {
         const cabinetItem = document.createElement('div');
         cabinetItem.className = 'cabinet-row';
-        cabinetItem.innerHTML = `<span class="cabinet-name">${cabinet}</span><span class="cabinet-count">${cabinetCounts[cabinet]}</span>`;
+        cabinetItem.innerHTML = `<span class="cabinet-name">${cabinet}</span><span class="cabinet-count">${count}</span>`;
         cabinetList.appendChild(cabinetItem);
-    }
+    });
 }
 
 // ---- Update loadCallsFromLocalStorage to refresh cabinets too ----
