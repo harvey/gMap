@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Call Map v1.4</title>
+    <title>Live Call Map v1.5</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
@@ -25,7 +25,7 @@
     <div id="header">
         <div class="logo">
             <div class="logo-icon"><i class="fas fa-map-marker-alt"></i></div>
-            <h1>Live Call Map v1.4 - Past call logs working - Area searching to add</h1>
+            <h1>Live Call Map v1.5 - Past call logs working - Area searching to add</h1>
         </div>
     </div>
     
@@ -53,6 +53,11 @@
                             <option value="east">East Region</option>
                             <option value="west">West Region</option>
                         </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="cluster-slider">Cluster Density (0 = off)</label>
+                        <input type="range" id="cluster-slider" min="5" max="100" step="5" value="30">
+                        <span id="cluster-slider-value">30</span>
                     </div>
                 </div>
             </div>
@@ -147,7 +152,7 @@
         }).addTo(map);
 
         // Initialize marker cluster group
-        const clusterGroup = L.markerClusterGroup({ maxClusterRadius: 30 });
+        let clusterGroup = L.markerClusterGroup({ maxClusterRadius: 30 });
         map.addLayer(clusterGroup);
 
         // Initialize heat layer
@@ -797,6 +802,37 @@ function loadCallsFromLocalStorage() {
     // Update stats and the cabinet list based on active calls.
     updateStats();
     updateCabinetList();
+}
+
+// ---- Cluster slider functionality ----
+document.getElementById('cluster-slider').addEventListener('input', updateClusterDensity);
+
+function updateClusterDensity() {
+    const slider = document.getElementById('cluster-slider');
+    const value = parseInt(slider.value, 10);
+    document.getElementById('cluster-slider-value').textContent = value;
+
+    // Clear current markers from the map and activePings
+    activePings.forEach((ping, id) => {
+        if (map.hasLayer(ping.marker)) {
+            map.removeLayer(ping.marker);
+        }
+    });
+    activePings.clear();
+
+    // Remove clusterGroup if it is on the map.
+    if (map.hasLayer(clusterGroup)) {
+        map.removeLayer(clusterGroup);
+    }
+
+    // Recreate clusterGroup if clustering is enabled; otherwise, we won't use it.
+    if (value > 0) {
+        clusterGroup = L.markerClusterGroup({ maxClusterRadius: value });
+        map.addLayer(clusterGroup);
+    }
+
+    // Reload pins from localStorage based on the current time filter.
+    loadCallsFromLocalStorage();
 }
     </script>
     <script>
